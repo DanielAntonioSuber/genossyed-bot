@@ -13,6 +13,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.3.0"
+    "@whiskeysockets/baileys": "^6.3.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
