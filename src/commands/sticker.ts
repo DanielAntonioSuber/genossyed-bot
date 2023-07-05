@@ -1,22 +1,23 @@
 import { WASocket, downloadMediaMessage, proto } from "@whiskeysockets/baileys";
+import { pino } from "pino";
 import Sticker from "wa-sticker-formatter";
 
-export async function sticker (waMessageInfo: proto.IWebMessageInfo, sock: WASocket) {
-  const quotedImageMessage = waMessageInfo.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage
-  const id = waMessageInfo.key.remoteJid
+export async function sticker (webMessageInfo: proto.IWebMessageInfo, sock: WASocket) {
+  const quotedImageMessage = webMessageInfo.message?.extendedTextMessage?.contextInfo?.quotedMessage?.imageMessage
+  const id = webMessageInfo.key.remoteJid
   if(!id) return
   
   if(quotedImageMessage) {
     const messageInfo: proto.IWebMessageInfo = {
       key: {
         id: quotedImageMessage.contextInfo?.stanzaId,
-        participant: waMessageInfo.key.participant,
-        remoteJid: waMessageInfo.key.remoteJid
+        participant: webMessageInfo.key.participant,
+        remoteJid: webMessageInfo.key.remoteJid
       },
       message: {imageMessage: quotedImageMessage}
     }
-
-    const buffer = await downloadMediaMessage(messageInfo, 'buffer', {})
+    const logger = pino({ level: 'debug'})
+    const buffer = await downloadMediaMessage(messageInfo, 'buffer', {}, {logger, reuploadRequest: sock.updateMediaMessage, })
     
     if(buffer instanceof Buffer) {
       const sticker = await (
@@ -33,10 +34,10 @@ export async function sticker (waMessageInfo: proto.IWebMessageInfo, sock: WASoc
           )
           .toMessage()
         )
-
-      await sock.sendMessage(id, sticker, {quoted: waMessageInfo})
+      
+      await sock.sendMessage(id, sticker, {quoted: webMessageInfo})
     }
   } else {
-    await sock.sendMessage(id,{text: 'No es una imágen' }, {quoted: waMessageInfo})
+    await sock.sendMessage(id,{text: 'No es una imágen' }, {quoted: webMessageInfo})
   }
 }

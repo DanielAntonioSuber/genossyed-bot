@@ -1,6 +1,7 @@
 import { MessageUpsertType, proto, WASocket } from "@whiskeysockets/baileys"
 import { nowa } from "./nowa"
 import { sticker } from "./sticker"
+import { imageToSticker } from "./imageToSticker";
 
 function executeCommands(command: string, 
     m: {
@@ -11,8 +12,10 @@ function executeCommands(command: string,
 ) {
     const commands: Map<string, () => void > = new Map()
     const webMessageInfo = m.messages[0]
+
     commands.set('nowa', () => nowa(webMessageInfo, sock))
     commands.set('sticker', () => sticker(webMessageInfo, sock))
+    commands.set('imagesticker', () => imageToSticker(webMessageInfo, sock))
 
     try {
         commands.get(command)!()

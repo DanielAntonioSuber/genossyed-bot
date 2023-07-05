@@ -21,13 +21,12 @@ export async function nowa(webMessageInfo: proto.IWebMessageInfo, sock: WASocket
             } else {
                 unVerifiedNumbers += `${numberPhone}\n`
             }
-            
         }
         const text = `Números verificados \n${verifiedNumbers}\nNúmeros no verificados \n${unVerifiedNumbers}`
         
-        await sock.sendMessage(webMessageInfo.key.remoteJid!, { text: text}, {quoted: webMessageInfo} )
+        await sock.sendMessage(webMessageInfo.key.remoteJid!, { text: text}, { quoted: webMessageInfo } )
     } else {
-        await sock.sendMessage(webMessageInfo.key.remoteJid! , {text: 'Número incorrecto para whatsapp'})
+        await sock.sendMessage(webMessageInfo.key.remoteJid! , { text: 'Número incorrecto para whatsapp' }, { quoted: webMessageInfo })
     }
 }
 

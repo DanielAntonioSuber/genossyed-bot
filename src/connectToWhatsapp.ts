@@ -11,7 +11,6 @@ async function connectToWhatsApp () {
         printQRInTerminal: true,
         auth: state
     })
-    
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update
         if(connection === 'close' && lastDisconnect != null) {
