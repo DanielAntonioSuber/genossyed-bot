@@ -1,30 +1,33 @@
-import { isJidUser, proto, WASocket } from "@whiskeysockets/baileys"
+import { proto, WASocket } from "@whiskeysockets/baileys"
 
-export async function nowa(waInfo: proto.IWebMessageInfo, sock: WASocket) {
-    const numberVerify = /\d|x/i
-    const numberPhone = waInfo.message?.conversation?.split(" ")[1]!
+export async function nowa(webMessageInfo: proto.IWebMessageInfo, sock: WASocket) {
+    const numberPhoneRegExp = /\d|x/i
+    const numberPattern = webMessageInfo.message?.conversation?.split(" ")[1]!
 
-    if(numberVerify.test(numberPhone)) {
-        const digits = numberPhone.match(new RegExp("x", "g"))?.length!
-        const max = parseInt("9".repeat(digits));
+    if(numberPhoneRegExp.test(numberPattern)) {
         let verifiedNumbers = ""
         let unVerifiedNumbers = "" 
-        
+        const digits = numberPattern.match(new RegExp("x", "g"))?.length!
+        const max = parseInt("9".repeat(digits));
+
+        await sock.sendMessage(webMessageInfo.key.remoteJid!, { text: 'Esperar a que el computo finalice.'}, {quoted: webMessageInfo} )
+
         for(let i = 0; i <= max; i++) {
-            const number = numberPhone.replace("x".repeat(digits), addZeros(i, digits));
-            console.log(`${number}@s.whatsapp.net`);
-            const status = isJidUser(`${number}@s.whatsapp.net`)
-            sock.query
-          
-            if(status ) {
-                verifiedNumbers += `wa.me//+${number}\n`
+            const numberPhone = numberPattern.replace("x".repeat(digits), addZeros(i, digits));
+            const result = await sock.onWhatsApp(`${numberPhone}@s.whatsapp.net`)
+            
+            if(result.length !== 0) {
+                verifiedNumbers += `wa.me//+${numberPhone}\n`
             } else {
-                unVerifiedNumbers + `${number}\n`
+                unVerifiedNumbers += `${numberPhone}\n`
             }
             
         }
-        const text = `Números verificados \n${verifiedNumbers}\n números no verificados \n${unVerifiedNumbers}`
-        await sock.sendMessage( waInfo.key.remoteJid!, { text: text}, {quoted: waInfo} )
+        const text = `Números verificados \n${verifiedNumbers}\nNúmeros no verificados \n${unVerifiedNumbers}`
+        
+        await sock.sendMessage(webMessageInfo.key.remoteJid!, { text: text}, {quoted: webMessageInfo} )
+    } else {
+        await sock.sendMessage(webMessageInfo.key.remoteJid! , {text: 'Número incorrecto para whatsapp'})
     }
 }
 

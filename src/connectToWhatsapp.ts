@@ -25,6 +25,7 @@ async function connectToWhatsApp () {
             console.log('opened connection')
         }
     })
+    
     sock.ev.on('messages.upsert', handleCommands(sock))
 
     sock.ev.on ('creds.update', saveCreds)
