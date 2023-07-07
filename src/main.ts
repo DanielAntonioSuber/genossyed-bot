@@ -1,4 +1,4 @@
-import connectToWhatsApp from "./connectToWhatsapp";
+import { Bot } from "./structures/Bot";
 
-// run in main file
-connectToWhatsApp()
+const bot = new Bot("GenosyedBot", "1")
+bot.connectToWhatsApp()

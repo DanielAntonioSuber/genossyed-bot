@@ -10,12 +10,14 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/fs-extra": "^11.0.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.1.6"
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
     "@whiskeysockets/baileys": "^6.3.0",
+    "fs-extra": "^11.1.1",
     "jimp": "^0.16.13",
     "pino": "^8.14.1",
     "qrcode-terminal": "^0.12.0",
