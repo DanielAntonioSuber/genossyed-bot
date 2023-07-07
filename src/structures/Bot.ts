@@ -7,7 +7,7 @@ import { getTextFromWebMsgInfo } from "../utils/WebMessageInfoUtils"
 
 export class Bot {
   private botId: string
-  private waConnection: WASocket | undefined
+  public waConnection: WASocket | undefined
   private commands = new Map<string, Command>()
   private botJid: string | undefined
   private name: string | undefined
