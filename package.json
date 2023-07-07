@@ -19,6 +19,7 @@
     "@whiskeysockets/baileys": "^6.3.0",
     "fs-extra": "^11.1.1",
     "jimp": "^0.16.13",
+    "libphonenumber-js": "^1.10.37",
     "pino": "^8.14.1",
     "qrcode-terminal": "^0.12.0",
     "wa-sticker-formatter": "^4.4.4"

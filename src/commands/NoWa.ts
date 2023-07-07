@@ -1,5 +1,6 @@
 import { proto } from "@whiskeysockets/baileys"
 import { Command } from "../structures/Command"
+import { PhoneNumber, parsePhoneNumber } from "libphonenumber-js";
 
 export default class NoWa extends Command {
   constructor() {
@@ -8,35 +9,42 @@ export default class NoWa extends Command {
   }
 
   public override execute = async (webMessageInfo: proto.IWebMessageInfo, args?: string[]) => {
-    const numberPhoneRegExp = /\d|x/i
-    const numberPattern = webMessageInfo.message?.conversation?.split(" ")[1]!
+    try {
+      const numberPhoneRegExp = /\d|x/i;
+      const numberPattern = webMessageInfo.message?.conversation?.substring(5)
 
-    if (numberPhoneRegExp.test(numberPattern)) {
-      let verifiedNumbers = ""
-      let unVerifiedNumbers = ""
-      const digits = numberPattern.match(new RegExp("x", "g"))?.length!
-      const max = parseInt("9".repeat(digits));
+      if (numberPattern && numberPhoneRegExp.test(numberPattern)) {
+        let verifiedNumbers = "";
+        let unVerifiedNumbers = "";
+        const digits = numberPattern.match(new RegExp("x", "g"))?.length!;
+        const max = parseInt("9".repeat(digits));
 
-      await this.bot.replyText(webMessageInfo,  'Esperar a que el computo finalice.')
+        await this.bot.replyText(webMessageInfo, '⚠️ Por favor, espere hasta que el cómputo finalice.');
 
-      for (let i = 0; i <= max; i++) {
-        const numberPhone = numberPattern.replace("x".repeat(digits), this.addZeros(i, digits));
-        const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`)
+        for (let i = 0; i <= max; i++) {
+          const numberPhone = numberPattern.replace("x".repeat(digits), this.addZeros(i, digits));
+          const phoneNumber = parsePhoneNumber(`+${numberPhone}`);
+          const formattedNumber = phoneNumber.formatInternational();
 
-        if (result && result.length !== 0) {
-          verifiedNumbers += `wa.me//+${numberPhone}\n`
-        } else {
-          unVerifiedNumbers += `${numberPhone}\n`
+          const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`);
+
+          if (result && result.length !== 0) {
+            verifiedNumbers += `${formattedNumber}\n\n`;
+          } else {
+            unVerifiedNumbers += `${formattedNumber}\n\n`;
+          }
         }
-      }
-      const text = `Números verificados \n${verifiedNumbers}\nNúmeros no verificados \n${unVerifiedNumbers}`
+        const text = `✅ Números registrados en WhatsApp: \n${verifiedNumbers}\n🚫 Números no registrados en WhatsApp: \n${unVerifiedNumbers}`;
 
-      await this.bot.replyText(webMessageInfo, text)
-    } else {
-      await this.bot.replyText(webMessageInfo, 'Número incorrecto para whatsapp')
+        await this.bot.replyText(webMessageInfo, text);
+      } else {
+        await this.bot.replyText(webMessageInfo, 'Número telefónico inválido. Por favor, reescriba el número y vuelva a intentar.')
+      }
+    } catch (error) {  await this.bot.replyText(webMessageInfo, 'Un error.')
+
     }
   }
-  
+
   addZeros(numero: number, cantidadCeros: number) {
     let numeroString = numero.toString();
     let cerosFaltantes = cantidadCeros - numeroString.length;
@@ -44,5 +52,5 @@ export default class NoWa extends Command {
       numeroString = "0".repeat(cerosFaltantes) + numeroString;
     }
     return numeroString;
-}
+  }
 }
