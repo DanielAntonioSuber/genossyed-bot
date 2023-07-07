@@ -26,15 +26,18 @@ export default class NoWa extends Command {
           const phoneNumber = parsePhoneNumber(`+${numberPhone}`);
           const formattedNumber = phoneNumber.formatInternational();
 
+          console.log(formattedNumber);
+          
+
           const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`);
 
           if (result && result.length !== 0) {
-            verifiedNumbers += `${formattedNumber}\n\n`;
+            verifiedNumbers += `${formattedNumber}\n`;
           } else {
-            unVerifiedNumbers += `${formattedNumber}\n\n`;
+            unVerifiedNumbers += `${formattedNumber}\n`;
           }
         }
-        const text = `✅ Números registrados en WhatsApp: \n${verifiedNumbers}\n🚫 Números no registrados en WhatsApp: \n${unVerifiedNumbers}`;
+        const text = `✅ Números registrados en WhatsApp: \n\n${verifiedNumbers}\n 🚫 Números no registrados en WhatsApp: \n\n${unVerifiedNumbers}\n`;
 
         await this.bot.replyText(webMessageInfo, text);
       } else {
