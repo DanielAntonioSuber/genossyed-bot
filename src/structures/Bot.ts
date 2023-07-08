@@ -77,7 +77,7 @@ export class Bot {
 
     const command = this.commands.get(commandName!)
     if(!command)
-      return this.replyText(messageInfo, "El comando no existe") 
+      return
 
     args?.shift()
     command.bot = this
