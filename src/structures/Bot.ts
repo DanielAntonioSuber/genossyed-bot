@@ -1,5 +1,5 @@
 import { Boom } from "@hapi/boom"
-import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, useMultiFileAuthState } from "@whiskeysockets/baileys"
+import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, useMultiFileAuthState, delay } from "@whiskeysockets/baileys"
 import { Command } from "./Command"
 import { readdirSync } from 'fs-extra'
 import { join } from 'path'
@@ -84,9 +84,22 @@ export class Bot {
     command.execute(messageInfo, args)
   }
 
-  public replyText = async (webMessageInfo: proto.IWebMessageInfo, text: string) => {
-    if (webMessageInfo.key.remoteJid)
-      await this.waConnection?.sendMessage(webMessageInfo.key.remoteJid, { text }, { quoted: webMessageInfo })
+  public replyText = async (webMessageInfo: proto.IWebMessageInfo, text: string, typingDelay?: number) => {
+    const jid = webMessageInfo.key.remoteJid
+    
+    if (jid) {
+      if(typingDelay) {
+        await this.waConnection?.presenceSubscribe(jid)
+        await delay(500)
+
+        await this.waConnection?.sendPresenceUpdate('composing', jid)
+        await delay(typingDelay)
+
+        await this.waConnection?.sendPresenceUpdate('paused', jid)
+      }
+
+      await this.waConnection?.sendMessage(jid, { text }, { quoted: webMessageInfo })
+    }
   }
 
   public replySticker =async (webMessageInfo: proto.IWebMessageInfo, sticker: { sticker: Buffer }) => {

@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "^6.3.0",
+    "@whiskeysockets/baileys": "6.3.1",
     "fs-extra": "^11.1.1",
     "jimp": "^0.16.13",
     "libphonenumber-js": "^1.10.37",

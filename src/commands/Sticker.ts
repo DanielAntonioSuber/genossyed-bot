@@ -27,7 +27,7 @@ export default class Sticker extends Command {
           author: 'B7',
           categories: ['☔️', '❤️'],
           id: 'BOTSYED-',
-          quality: 15,
+          quality: 20,
           background: '#00000000',
           type: StickerTypes.FULL
         }
