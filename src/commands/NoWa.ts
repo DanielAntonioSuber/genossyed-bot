@@ -3,8 +3,7 @@ import { Command } from "../structures/Command";
 import { PhoneNumber, parsePhoneNumber, CountryCode } from "libphonenumber-js";
 
 export default class NoWa extends Command {
-  verifiedNumbers: string[] = []
-  unVerifiedNumbers: string[] = []
+  
 
   constructor() {
     super();
@@ -13,6 +12,8 @@ export default class NoWa extends Command {
 
   public override execute = async (webMessageInfo: proto.IWebMessageInfo, args?: string[]) => {
     try {
+      const verifiedNumbers: string[] = []
+      const unVerifiedNumbers: string[] = []
       const numberPhoneRegExp = /\d|x/i;
       const jid = webMessageInfo.key.remoteJid!
       const promises: Promise<void>[] = []
@@ -34,17 +35,16 @@ export default class NoWa extends Command {
       await this.bot.replyText(webMessageInfo, 'Por favor, espera mientras se completa el cómputo.');
 
       if (max < 999) {
-        await this.numbersOnWhatsapp(0, max, numberPattern, webMessageInfo, digits)
-        return
+        promises.push(this.numbersOnWhatsapp(0, max, numberPattern, webMessageInfo, digits, verifiedNumbers, unVerifiedNumbers))
       }
 
       if (max === 999) {
         for (let i = 1; i <= 5; i++) {
           const init = i == 1 ? 200 * (i - 1) : 200 * (i - 1) + 1
           if (i == 5) {
-            promises.push(this.numbersOnWhatsapp(init, 999, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 999, numberPattern, webMessageInfo, digits, verifiedNumbers, unVerifiedNumbers))
           } else {
-            promises.push(this.numbersOnWhatsapp(init, 200 * i, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 200 * i, numberPattern, webMessageInfo, digits, verifiedNumbers, unVerifiedNumbers))
           }
         }
       }
@@ -53,9 +53,9 @@ export default class NoWa extends Command {
         for (let i = 1; i <= 33; i++) {
           const init = i == 1 ? 300 * (i - 1) : 300 * (i - 1) + 1
           if (i == 33) {
-            promises.push(this.numbersOnWhatsapp(init, 9999, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 9999, numberPattern, webMessageInfo, digits, verifiedNumbers, unVerifiedNumbers))
           } else {
-            promises.push(this.numbersOnWhatsapp(init, 300 * i, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 300 * i, numberPattern, webMessageInfo, digits, verifiedNumbers, unVerifiedNumbers))
           }
         }
       }
@@ -73,16 +73,16 @@ export default class NoWa extends Command {
       Promise.all(promises).then(async () => {
         let verifiedNumbersText = ""
         let unverifiedNumbersText = ""
-        this.verifiedNumbers.forEach((number, index) => {
+        verifiedNumbers.forEach((number, index) => {
           verifiedNumbersText += `${index + 1}. ${number}\n`;
         })
 
-        this.unVerifiedNumbers.forEach((number, index) => {
+        unVerifiedNumbers.forEach((number, index) => {
           unverifiedNumbersText += `${index + 1}. ${number}\n`;
         })
 
-        let text = `[✅] - Números registrados en WhatsApp (${this.verifiedNumbers.length}):\n\n${verifiedNumbersText}`;
-        text += `\n[🚫] - Números no registrados en WhatsApp (${this.unVerifiedNumbers.length}):\n\n${unverifiedNumbersText}`;
+        let text = `[✅] - Números registrados en WhatsApp (${verifiedNumbers.length}):\n\n${verifiedNumbersText}`;
+        text += `\n[🚫] - Números no registrados en WhatsApp (${unVerifiedNumbers.length}):\n\n${unverifiedNumbersText}`;
 
         await this.bot.waConnection?.sendPresenceUpdate('paused', jid)
         this.bot.replyText(webMessageInfo, text);
@@ -93,7 +93,7 @@ export default class NoWa extends Command {
     }
   };
 
-  numbersOnWhatsapp = async (init: number, max: number, numberPattern: string, webMessageInfo: proto.IWebMessageInfo, digits: number) => {
+  numbersOnWhatsapp = async (init: number, max: number, numberPattern: string, webMessageInfo: proto.IWebMessageInfo, digits: number, verifiedNumbers: string[], unVerifiedNumbers: string[]) => {
     for (let i = init; i <= max; i++) {
       const numberPhone = numberPattern.replace("x".repeat(digits), this.addZeros(i, digits));
       const phoneNumber = parsePhoneNumber(`+${numberPhone}`);
@@ -104,9 +104,9 @@ export default class NoWa extends Command {
       const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`);
 
       if (result && result.length !== 0 && result[0].exists) {
-        this.verifiedNumbers.push(formattedNumber)
+        verifiedNumbers.push(formattedNumber)
       } else {
-        this.unVerifiedNumbers.push(formattedNumber)
+        unVerifiedNumbers.push(formattedNumber)
       }
 
     }
