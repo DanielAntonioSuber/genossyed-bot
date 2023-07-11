@@ -40,20 +40,22 @@ export default class NoWa extends Command {
 
       if (max === 999) {
         for (let i = 1; i <= 5; i++) {
+          const init = i == 1 ? 200 * (i - 1) : 200 * (i - 1) + 1
           if (i == 5) {
-            promises.push(this.numbersOnWhatsapp(200 * (i - 1), 999, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 999, numberPattern, webMessageInfo, digits))
           } else {
-            promises.push(this.numbersOnWhatsapp(200 * (i - 1), 200 * i, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 200 * i, numberPattern, webMessageInfo, digits))
           }
         }
       }
 
       if (max === 9999) {
         for (let i = 1; i <= 33; i++) {
+          const init = i == 1 ? 300 * (i - 1) : 300 * (i - 1) + 1
           if (i == 33) {
-            promises.push(this.numbersOnWhatsapp(300 * (i - 1), 9999, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 9999, numberPattern, webMessageInfo, digits))
           } else {
-            promises.push(this.numbersOnWhatsapp(300 * (i - 1), 300 * i, numberPattern, webMessageInfo, digits))
+            promises.push(this.numbersOnWhatsapp(init, 300 * i, numberPattern, webMessageInfo, digits))
           }
         }
       }
@@ -101,7 +103,7 @@ export default class NoWa extends Command {
 
       const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`);
 
-      if (result && result.length !== 0) {
+      if (result && result.length !== 0 && result[0].exists) {
         this.verifiedNumbers.push(formattedNumber)
       } else {
         this.unVerifiedNumbers.push(formattedNumber)
