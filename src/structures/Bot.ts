@@ -8,10 +8,12 @@ import { getTextFromWebMsgInfo } from "../utils/WebMessageInfoUtils"
 export class Bot {
   private botId: string
   public waConnection: WASocket | undefined
+  public waConnections: WASocket[] | undefined
   private commands = new Map<string, Command>()
   private botJid: string | undefined
   private name: string | undefined
   private commandPrefix: string = '.'
+
 
   constructor(botId: string, name: string) {
     this.name = name
@@ -70,25 +72,24 @@ export class Bot {
     const isCommand = message?.startsWith(this.commandPrefix)
     const commandName = message?.split(" ")[0].replace(this.commandPrefix, "")
     const args = message?.split(" ")
-    
+
     if (!isCommand) {
-      return 
-    } 
+      return
+    }
 
     const command = this.commands.get(commandName!)
-    if(!command)
+    if (!command)
       return
-
     args?.shift()
     command.bot = this
-    command.execute(messageInfo, args)
+    command.execute(messageInfo, args ?? [] as string[])
   }
 
   public replyText = async (webMessageInfo: proto.IWebMessageInfo, text: string, typingDelay?: number) => {
     const jid = webMessageInfo.key.remoteJid
-    
+
     if (jid) {
-      if(typingDelay) {
+      if (typingDelay) {
         await this.waConnection?.presenceSubscribe(jid)
         await delay(500)
 
@@ -102,7 +103,7 @@ export class Bot {
     }
   }
 
-  public replySticker =async (webMessageInfo: proto.IWebMessageInfo, sticker: { sticker: Buffer }) => {
+  public replySticker = async (webMessageInfo: proto.IWebMessageInfo, sticker: { sticker: Buffer }) => {
     if (webMessageInfo.key.remoteJid)
       await this.waConnection?.sendMessage(webMessageInfo.key.remoteJid, sticker, { quoted: webMessageInfo })
   }

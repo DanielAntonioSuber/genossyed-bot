@@ -3,8 +3,6 @@ import { Command } from "../structures/Command";
 import { PhoneNumber, parsePhoneNumber, CountryCode } from "libphonenumber-js";
 
 export default class NoWa extends Command {
-  
-
   constructor() {
     super();
     this.name = 'nowa';
@@ -17,7 +15,7 @@ export default class NoWa extends Command {
       const numberPhoneRegExp = /\d|x/i;
       const jid = webMessageInfo.key.remoteJid!
       const promises: Promise<void>[] = []
-      const numberPattern = webMessageInfo.message?.conversation?.substring(5);
+      const numberPattern = args && args[0]
 
       if (!numberPattern) {
         await this.bot.replyText(webMessageInfo, 'Para dar inicio al cómputo debe escribir el fragmento del número teléfonico con el que desea operar y finalizar dejando *x* aquellos dígitos sobre los que se busca iterar. La cantidad de veces que se iterarán esos dígitos dependerá de cuántos dígitos se hayan sustituido con *x*, de tal manera que si se han sustituido tres dígitos con *x* la iteración finalizará cuando se hayan verificado 999 números. Esta iteración viene en la forma de un incremento de 1 que tiene como límite a la cantidad de dígitos del número telefónico que se hayan sustituido por *x*. \n\nEl sintaxis que deben seguir los argumentos del comando debe ser así: \n\n*.nowa [número de teléfono]* \n\nEl número telefónico no debe ser escrito con espacios ni signos.', 4000);
