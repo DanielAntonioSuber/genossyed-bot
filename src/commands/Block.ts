@@ -1,4 +1,4 @@
-import { proto } from "@whiskeysockets/baileys";
+import { delay, proto } from "@whiskeysockets/baileys";
 import { Command } from "../structures/Command";
 
 export default class Sticker extends Command {
@@ -26,6 +26,7 @@ export default class Sticker extends Command {
       console.log(`Bloqueó ${i} a ${numberPhoneText}@s.whatsapp.net`);
       
       await this.bot.waConnection?.updateBlockStatus(`${numberPhoneText}@s.whatsapp.net`, "block")
+      await delay(500)
       await this.bot.waConnection?.updateBlockStatus(`${numberPhoneText}@s.whatsapp.net`, "unblock")
 
       if (i == max) {
