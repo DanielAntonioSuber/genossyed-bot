@@ -92,21 +92,23 @@ export default class NoWa extends Command {
   };
 
   numbersOnWhatsapp = async (init: number, max: number, numberPattern: string, webMessageInfo: proto.IWebMessageInfo, digits: number, verifiedNumbers: string[], unVerifiedNumbers: string[]) => {
-    for (let i = init; i <= max; i++) {
-      const numberPhone = numberPattern.replace("x".repeat(digits), this.addZeros(i, digits));
-      const phoneNumber = parsePhoneNumber(`+${numberPhone}`);
-      const formattedNumber = this.formatPhoneNumber(phoneNumber);
-
-      console.log(formattedNumber);
-
-      const result = await this.bot.waConnection?.onWhatsApp(`${numberPhone}@s.whatsapp.net`);
-
-      if (result && result.length !== 0 && result[0].exists) {
-        verifiedNumbers.push(formattedNumber)
-      } else {
-        unVerifiedNumbers.push(formattedNumber)
+    try {
+      for (let i = init; i <= max; i++) {
+        const numberPhone = numberPattern.replace("x".repeat(digits), this.addZeros(i, digits));
+        console.log(numberPhone)
+        const phoneNumber = parsePhoneNumber(`+${numberPhone}`);
+        const formattedNumber = this.formatPhoneNumber(phoneNumber);
+  
+        console.log(formattedNumber);
+        const result = await this.bot.waConnection?.onWhatsApp(`+${numberPhone}@s.whatsapp.net`);
+        if (result && result.length !== 0 && result[0].exists) {
+          verifiedNumbers.push(formattedNumber)
+        } else {
+          unVerifiedNumbers.push(formattedNumber)
+        }
       }
-
+    } catch (error) {
+      this.bot.replyText(webMessageInfo, 'Eres imbécil');
     }
 
   }
