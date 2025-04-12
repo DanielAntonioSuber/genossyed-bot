@@ -1,39 +1,38 @@
-import { downloadMediaMessage, proto } from "@whiskeysockets/baileys";
-import { Command } from "../structures/Command";
-import { getQuotedMessage, hasQuotedMediaMessage, isMediaMessage } from "../utils/WebMessageInfoUtils";
-import StickerF, { StickerTypes } from "wa-sticker-formatter";
+import { downloadMediaMessage, proto } from "baileys"
+import { Command } from "../structures/Command"
+import { getQuotedMessage, hasQuotedMediaMessage, isMediaMessage } from "../utils/WebMessageInfoUtils"
+import sharp from "sharp"
 
 export default class Sticker extends Command {
   constructor() {
-    super();
+    super()
     this.name = 'sticker'
   }
 
   public override execute = async (webMessageInfo: proto.IWebMessageInfo, args?: string[]) => {
-    const isMedia: boolean = isMediaMessage(webMessageInfo)
-    const hasQuotedMedia: boolean = hasQuotedMediaMessage(webMessageInfo)
+    const isMedia = isMediaMessage(webMessageInfo)
+    const hasQuotedMedia = hasQuotedMediaMessage(webMessageInfo)
 
     if (!isMedia && !hasQuotedMedia) {
-      return this.bot.replyText(webMessageInfo, 'No es una imágen o vídeo')
+      return this.bot.replyText(webMessageInfo, 'No es una imagen o no estás respondiendo a una.')
     }
 
-    const buffer = await downloadMediaMessage(isMedia ? webMessageInfo : getQuotedMessage(webMessageInfo), 'buffer', {}) as Buffer
+    try {
+      const mediaMessage = isMedia ? webMessageInfo : getQuotedMessage(webMessageInfo)
+      const buffer = await downloadMediaMessage(mediaMessage, 'buffer', {}) as Buffer
 
-    const sticker = await (
-      new StickerF(
-        buffer,
-        {
-          pack: 'Thelmstone',
-          author: 'B7',
-          categories: ['☔️', '❤️'],
-          id: 'BOTSYED-',
-          quality: 20,
-          background: '#00000000',
-          type: StickerTypes.FULL
-        }
-      )
-        .toMessage()
-    )
-    await this.bot.replySticker(webMessageInfo, sticker)
+      const stickerBuffer = await sharp(buffer)
+        .resize(512, 512, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .webp({ quality: 100 })
+        .toBuffer()
+
+      await this.bot.replySticker(webMessageInfo, { sticker: stickerBuffer })
+    } catch (error) {
+      console.error('Error al generar el sticker:', error)
+      await this.bot.replyText(webMessageInfo, 'No se pudo generar el sticker.')
+    }
   }
 }

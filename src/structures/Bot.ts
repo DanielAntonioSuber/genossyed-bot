@@ -1,9 +1,12 @@
-import { Boom } from "@hapi/boom"
-import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, useMultiFileAuthState, delay } from "@whiskeysockets/baileys"
-import { Command } from "./Command"
+import { Boom } from '@hapi/boom'
+import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, useMultiFileAuthState, delay } from 'baileys'
+import { Command } from './Command'
 import { readdirSync } from 'fs-extra'
 import { join } from 'path'
-import { getTextFromWebMsgInfo } from "../utils/WebMessageInfoUtils"
+import { getTextFromWebMsgInfo } from '../utils/WebMessageInfoUtils'
+import QRCode from 'qrcode'
+import useMongoAuthState from '../utils/useMongoAuthState'
+import { MongoClient } from 'mongodb'
 
 export class Bot {
   private botId: string
@@ -22,10 +25,16 @@ export class Bot {
   }
 
   async connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState(`auth_state_${this.botId}`)
+    const mongo = new MongoClient('mongodb://localhost:27017', {
+      socketTimeoutMS: 1_00_000,
+      connectTimeoutMS: 1_00_000,
+      waitQueueTimeoutMS: 1_00_000,
+    });
+
+    const authCollection = mongo.db('wpsessions').collection('authState');
+    const { state, saveCreds } = await useMongoAuthState(authCollection)
 
     this.waConnection = makeWASocket({
-      printQRInTerminal: true,
       auth: state
     })
 
@@ -41,14 +50,19 @@ export class Bot {
       path.push(commandName)
       const command: Command = new (require(join(...path)).default)()
       this.commands.set(command.name, command)
+      command.bot = this
       path.splice(path.indexOf(commandName), 1)
     }
-
   }
 
   private handleUpdate(saveCreds: () => Promise<void>) {
-    return (update: Partial<ConnectionState>) => {
-      const { connection, lastDisconnect } = update
+    return async (update: Partial<ConnectionState>) => {
+      const { connection, lastDisconnect, qr} = update
+
+      if (qr) {
+        console.log(await QRCode.toString(qr, {type:'terminal', small: true}))
+      }
+
       if (connection === 'close' && lastDisconnect != null) {
         const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
         console.log('connection closed due to ', lastDisconnect.error, ', reconnecting ', shouldReconnect)
@@ -63,26 +77,30 @@ export class Bot {
     }
   }
 
-  private handleNewMessage = (m: {
+  private handleNewMessage = ({ messages, type }: {
     messages: proto.IWebMessageInfo[];
     type: MessageUpsertType;
   }) => {
-    const messageInfo = m.messages[0]
+    const messageInfo = messages[0]
     const message = getTextFromWebMsgInfo(messageInfo)
-    const isCommand = message?.startsWith(this.commandPrefix)
-    const commandName = message?.split(" ")[0].replace(this.commandPrefix, "")
-    const args = message?.split(" ")
 
-    if (!isCommand) {
-      return
+    if (type === 'notify' && message !== null) {
+      const isCommand = message?.startsWith(this.commandPrefix)
+      const commandName = message?.split(' ')[0].replace(this.commandPrefix, '')
+      const args = message?.split(' ')
+
+      console.log(`${messageInfo.key.remoteJid?.replace(/\..+\..+/, '')}:${message}`)
+
+      if (!isCommand) {
+        return
+      }
+
+      const command = this.commands.get(commandName!)
+      if (!command)
+        return
+      args?.shift()
+      command.execute(messageInfo, args ?? [] as string[])
     }
-
-    const command = this.commands.get(commandName!)
-    if (!command)
-      return
-    args?.shift()
-    command.bot = this
-    command.execute(messageInfo, args ?? [] as string[])
   }
 
   public replyText = async (webMessageInfo: proto.IWebMessageInfo, text: string, typingDelay?: number) => {
