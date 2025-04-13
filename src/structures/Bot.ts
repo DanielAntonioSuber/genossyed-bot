@@ -1,5 +1,5 @@
 import { Boom } from '@hapi/boom'
-import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, useMultiFileAuthState, delay } from 'baileys'
+import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, delay, makeCacheableSignalKeyStore } from 'baileys'
 import { Command } from './Command'
 import { readdirSync } from 'fs-extra'
 import { join } from 'path'
@@ -7,15 +7,20 @@ import { getTextFromWebMsgInfo } from '../utils/WebMessageInfoUtils'
 import QRCode from 'qrcode'
 import useMongoAuthState from '../utils/useMongoAuthState'
 import { MongoClient } from 'mongodb'
+import pino from 'pino'
+import NodeCache from 'node-cache'
 
 export class Bot {
   private botId: string
-  public waConnection: WASocket | undefined
-  public waConnections: WASocket[] | undefined
+  public waSock: WASocket | undefined
+  public waSocks: WASocket[] | undefined
   private commands = new Map<string, Command>()
   private botJid: string | undefined
   private name: string | undefined
   private commandPrefix: string = '.'
+  private groupCache = new NodeCache({ /* ... */ }) 
+  private messageCache = new NodeCache({stdTTL: 60})
+  private mongo?: MongoClient 
 
 
   constructor(botId: string, name: string) {
@@ -25,21 +30,27 @@ export class Bot {
   }
 
   async connectToWhatsApp() {
-    const mongo = new MongoClient('mongodb://localhost:27017', {
+    this.mongo = new MongoClient('mongodb://localhost:27017', {
       socketTimeoutMS: 1_00_000,
       connectTimeoutMS: 1_00_000,
       waitQueueTimeoutMS: 1_00_000,
     });
 
-    const authCollection = mongo.db('wpsessions').collection('authState');
+    const authCollection = this.mongo.db('wpsessions').collection('authState');
     const { state, saveCreds } = await useMongoAuthState(authCollection)
 
-    this.waConnection = makeWASocket({
-      auth: state
+    this.waSock = makeWASocket({
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, pino())
+      },
+      shouldSyncHistoryMessage: () => false,
+      cachedGroupMetadata: async (jid) => this.groupCache.get(jid)
     })
 
-    this.waConnection.ev.on('connection.update', this.handleUpdate(saveCreds))
-    this.waConnection.ev.on('messages.upsert', this.handleNewMessage)
+    this.waSock.ev.on('creds.update', saveCreds)
+    this.waSock.ev.on('connection.update', this.handleUpdate(saveCreds))
+    this.waSock.ev.on('messages.upsert', this.handleNewMessage)
   }
 
   private loadCommands() {
@@ -67,13 +78,15 @@ export class Bot {
         const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut
         console.log('connection closed due to ', lastDisconnect.error, ', reconnecting ', shouldReconnect)
         if (shouldReconnect) {
+          this.waSock = undefined
+          await this.mongo?.close()
           this.connectToWhatsApp()
         }
       } else if (connection === 'open') {
         console.log('opened connection')
       }
 
-      this.waConnection!.ev.on('creds.update', saveCreds)
+      this.waSock!.ev.on('creds.update', saveCreds)
     }
   }
 
@@ -83,6 +96,10 @@ export class Bot {
   }) => {
     const messageInfo = messages[0]
     const message = getTextFromWebMsgInfo(messageInfo)
+    const messageId = messageInfo.key.id
+
+    if (!messageId || this.messageCache.has(messageId)) return
+      this.messageCache.set(messageId, true)
 
     if (type === 'notify' && message !== null) {
       const isCommand = message?.startsWith(this.commandPrefix)
@@ -108,22 +125,22 @@ export class Bot {
 
     if (jid) {
       if (typingDelay) {
-        await this.waConnection?.presenceSubscribe(jid)
+        await this.waSock?.presenceSubscribe(jid)
         await delay(500)
 
-        await this.waConnection?.sendPresenceUpdate('composing', jid)
+        await this.waSock?.sendPresenceUpdate('composing', jid)
         await delay(typingDelay)
 
-        await this.waConnection?.sendPresenceUpdate('paused', jid)
+        await this.waSock?.sendPresenceUpdate('paused', jid)
       }
 
-      await this.waConnection?.sendMessage(jid, { text }, { quoted: webMessageInfo })
+      await this.waSock?.sendMessage(jid, { text }, { quoted: webMessageInfo })
     }
   }
 
   public replySticker = async (webMessageInfo: proto.IWebMessageInfo, sticker: { sticker: Buffer }) => {
     if (webMessageInfo.key.remoteJid)
-      await this.waConnection?.sendMessage(webMessageInfo.key.remoteJid, sticker, { quoted: webMessageInfo })
+      await this.waSock?.sendMessage(webMessageInfo.key.remoteJid, sticker, { quoted: webMessageInfo })
   }
 }
 
