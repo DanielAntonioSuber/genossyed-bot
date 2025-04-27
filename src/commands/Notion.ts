@@ -1,8 +1,9 @@
-import { proto } from 'baileys';
-import { Command } from '../structures/Command';
-import { createTask, getTasks } from '../lib/notion';
-import { getFlagValue } from '../utils/flags';
-import { isFullPageOrDatabase } from '@notionhq/client';
+import { proto, WAMediaUpload } from 'baileys'
+import { Command } from '../structures/Command'
+import { createTask, getTasks } from '../lib/notion'
+import { getFlagValue } from '../utils/flags'
+import { isFullPageOrDatabase } from '@notionhq/client'
+import { generateTasksImage } from '../utils/images'
 
 
 const helpText = `👋 ¡Hola! Este es el comando de Notion creado para interactuar fácilmente con el Notion de Daniel.
@@ -69,6 +70,7 @@ export default class Notion extends Command {
       if (command === 'help')
         await this.bot.replyText(message, helpText)
 
+
       if (command === 'tasks') {
         switch (subCommand) {
           case 'create':
@@ -77,11 +79,15 @@ export default class Notion extends Command {
             const response = await createTask({ category, priority, title })
 
             if (isFullPageOrDatabase(response)) {
-              await this.bot.replyText(message, `Tarea con ${response.properties['Nombre'].id} creada.`);
+              await this.bot.replyText(message, `Tarea con ID: ${(response.properties['ID'] as any)?.['unique_id']?.number} creada.`, 10)
             }
             break
           case 'get':
             const { number } = parseFlagsGet(args)
+
+            if (parseInt(number ?? '0') > 5) {
+              this.bot.replyText(message, 'Máximo puedes listar 5 tareas')
+            }
 
             const tasks = await getTasks({ number: parseInt(number ?? '0') })
             const formattedTasks = tasks?.results.map((task: any) => {
@@ -92,14 +98,14 @@ export default class Notion extends Command {
                 properties,
                 url
               } = task
-            
+
               const taskName = properties['Nombre']?.title?.[0]?.text?.content || 'No definido'
               const taskAssignee = properties['Assignee']?.people?.map((person: any) => person.name).join(', ') || 'Sin asignar'
               const taskPriority = properties['Prioridad']?.select?.name || 'Sin prioridad'
               const taskCategory = properties['Categoría']?.select?.name || 'Sin categoría'
               const taskStatus = properties['Estado']?.status?.name || 'Estado desconocido'
               const taskDate = properties['Fecha']?.date?.start || 'No definida'
-            
+
               return {
                 id,
                 taskName,
@@ -113,11 +119,16 @@ export default class Notion extends Command {
                 url
               }
             })
-            
-            await this.bot.replyText(
-              message, 
-              JSON.stringify(formattedTasks, null, 2)
-            )
+
+            try {
+              const imageBuffer = await generateTasksImage(formattedTasks!, {
+                title: '📋 Tareas de Daniii'
+              })
+              await this.bot.replyImage(message, imageBuffer)
+            } catch (error) {
+              console.error('Error al generar imagen:', error)
+              await this.bot.replyText(message, JSON.stringify(formattedTasks, null, 2))
+            }
             break
           default:
             break

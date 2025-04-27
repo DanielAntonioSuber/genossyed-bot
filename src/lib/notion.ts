@@ -75,11 +75,9 @@ export async function createTask({
       }
     }
 
-    if (date) {
-      properties['Fecha'] = {
-        date: {
-          start: new Date(date).toISOString()
-        }
+    properties['Fecha'] = {
+      date: {
+        start: new Date().toISOString()
       }
     }
 
@@ -87,7 +85,11 @@ export async function createTask({
       parent: {
         database_id: tasksDB.id
       },
-      properties: properties
+      properties: properties,
+      icon: {
+        type: 'external',
+        external: { url: 'https://www.notion.so/icons/document_gray.svg'}
+      }
     })
 
     return newPage

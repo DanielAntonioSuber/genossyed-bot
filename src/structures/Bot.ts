@@ -18,9 +18,9 @@ export class Bot {
   private botJid: string | undefined
   private name: string | undefined
   private commandPrefix: string = '.'
-  private groupCache = new NodeCache({ /* ... */ }) 
-  private messageCache = new NodeCache({stdTTL: 60})
-  private mongo?: MongoClient 
+  private groupCache = new NodeCache({ /* ... */ })
+  private messageCache = new NodeCache({ stdTTL: 60 })
+  private mongo?: MongoClient
 
   constructor(botId: string, name: string) {
     this.name = name
@@ -67,10 +67,10 @@ export class Bot {
 
   private handleUpdate(saveCreds: () => Promise<void>) {
     return async (update: Partial<ConnectionState>) => {
-      const { connection, lastDisconnect, qr} = update
+      const { connection, lastDisconnect, qr } = update
 
       if (qr) {
-        console.log(await QRCode.toString(qr, {type:'terminal', small: true}))
+        console.log(await QRCode.toString(qr, { type: 'terminal', small: true }))
       }
 
       if (connection === 'close' && lastDisconnect != null) {
@@ -98,7 +98,7 @@ export class Bot {
     const messageId = messageInfo.key.id
 
     if (!messageId || this.messageCache.has(messageId)) return
-      this.messageCache.set(messageId, true)
+    this.messageCache.set(messageId, true)
 
     if (type === 'notify' && message !== null) {
       const isCommand = message?.startsWith(this.commandPrefix)
@@ -140,6 +140,11 @@ export class Bot {
   public replySticker = async (webMessageInfo: proto.IWebMessageInfo, sticker: { sticker: Buffer }) => {
     if (webMessageInfo.key.remoteJid)
       await this.waSock?.sendMessage(webMessageInfo.key.remoteJid, sticker, { quoted: webMessageInfo })
+  }
+
+  public replyImage = async (webMessageInfo: proto.IWebMessageInfo, imageBuffer: Buffer<ArrayBufferLike>) => {
+    if (webMessageInfo.key.remoteJid)
+      await this.waSock?.sendMessage(webMessageInfo.key.remoteJid, { image: imageBuffer }, { quoted: webMessageInfo })
   }
 }
 
