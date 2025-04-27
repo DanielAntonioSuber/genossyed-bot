@@ -1,14 +1,12 @@
-import { WASocket, proto } from "baileys";
-import { Bot } from "./Bot";
+import { WASocket, proto } from 'baileys'
+import { Bot } from './Bot'
 
-export class Command {
-  name!: string
-  description!: string
-  aliases?: string[]
+export abstract class Command {
+  abstract name: string
+  abstract description?: string
+  abstract aliases?: string[]
 
-  public execute = async (message: proto.IWebMessageInfo, args?: string[] | undefined): Promise<void | never> => {
-    throw new Error('Command method not implemented')
-  }
+  public abstract execute (message: proto.IWebMessageInfo, args?: string[] | undefined): Promise<void | never>
 
-  public bot!: Bot;
+  public bot!: Bot
 }

@@ -22,7 +22,6 @@ export class Bot {
   private messageCache = new NodeCache({stdTTL: 60})
   private mongo?: MongoClient 
 
-
   constructor(botId: string, name: string) {
     this.name = name
     this.botId = botId
@@ -34,7 +33,7 @@ export class Bot {
       socketTimeoutMS: 1_00_000,
       connectTimeoutMS: 1_00_000,
       waitQueueTimeoutMS: 1_00_000,
-    });
+    })
 
     const authCollection = this.mongo.db('wpsessions').collection('authState');
     const { state, saveCreds } = await useMongoAuthState(authCollection)
@@ -86,7 +85,7 @@ export class Bot {
         console.log('opened connection')
       }
 
-      this.waSock!.ev.on('creds.update', saveCreds)
+      this.waSock?.ev.on('creds.update', saveCreds)
     }
   }
 

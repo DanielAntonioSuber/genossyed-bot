@@ -1,12 +1,17 @@
-import { downloadMediaMessage, proto } from "baileys"
-import { Command } from "../structures/Command"
-import { getQuotedMessage, hasQuotedMediaMessage, isMediaMessage } from "../utils/WebMessageInfoUtils"
-import sharp from "sharp"
+import { downloadMediaMessage, proto } from 'baileys'
+import { Command } from '../structures/Command'
+import { getQuotedMessage, hasQuotedMediaMessage, isMediaMessage } from '../utils/WebMessageInfoUtils'
+import sharp from 'sharp'
 
 export default class Sticker extends Command {
+  name: string
+  description?: string
+  aliases?: string[] | undefined
+
   constructor() {
     super()
     this.name = 'sticker'
+    this.aliases = ['s']
   }
 
   public override execute = async (webMessageInfo: proto.IWebMessageInfo, args?: string[]) => {
