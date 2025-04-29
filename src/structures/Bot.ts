@@ -1,7 +1,7 @@
 import { Boom } from '@hapi/boom'
 import makeWASocket, { ConnectionState, DisconnectReason, MessageUpsertType, WASocket, proto, delay, makeCacheableSignalKeyStore } from 'baileys'
 import { Command } from './Command'
-import { readdirSync } from 'fs-extra'
+import { readdirSync, statSync } from 'fs-extra'
 import { join } from 'path'
 import { getTextFromWebMsgInfo } from '../utils/WebMessageInfoUtils'
 import QRCode from 'qrcode'
@@ -25,7 +25,7 @@ export class Bot {
   constructor(botId: string, name: string) {
     this.name = name
     this.botId = botId
-    this.loadCommands()
+    this.loadCommands([__dirname, '..', 'commands'])
   }
 
   async connectToWhatsApp() {
@@ -52,16 +52,20 @@ export class Bot {
     this.waSock.ev.on('messages.upsert', this.handleNewMessage)
   }
 
-  private loadCommands() {
-    const path = [__dirname, '..', 'commands']
-    const commands = readdirSync(join(...path))
+  private loadCommands(path: string[]) {
+    const dir = readdirSync(join(...path))
 
-    for (const commandName of commands) {
-      path.push(commandName)
-      const command: Command = new (require(join(...path)).default)()
-      this.commands.set(command.name, command)
-      command.bot = this
-      path.splice(path.indexOf(commandName), 1)
+    for (const fileName of dir) {
+      const filePath = join(...path, fileName)
+      const fileStatus = statSync(filePath)
+
+      if (fileStatus.isDirectory()) {
+        this.loadCommands([...path, fileName])
+      } else {
+        const command: Command = new (require(filePath)?.default)()
+        this.commands.set(command.name, command)
+        command.bot = this
+      }
     }
   }
 
