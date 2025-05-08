@@ -1,8 +1,7 @@
 import { Client } from '@notionhq/client'
 
-import { isFullDatabase, isFullPageOrDatabase } from '@notionhq/client'
+import { isFullDatabase } from '@notionhq/client'
 import { DatabaseObjectResponse, QueryDatabaseResponse } from '@notionhq/client/build/src/api-endpoints'
-
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
@@ -108,6 +107,22 @@ export async function getTasks ({ number = 1 }: { number?: number }) {
     })
   }
   return null
+}
+
+export async function getTodayTasks () {
+  const dbTasks = await getDBTasks()
+
+  if(dbTasks) {
+    return notion.databases.query({
+      database_id: dbTasks.id,
+      filter: {
+        property: 'Fecha',
+        date: {
+          on_or_after: new Date().toISOString()
+        }
+      }
+    })
+  }
 }
 
 export default notion

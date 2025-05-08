@@ -44,7 +44,7 @@ export class Bot {
         keys: makeCacheableSignalKeyStore(state.keys, pino())
       },
       shouldSyncHistoryMessage: () => false,
-      cachedGroupMetadata: async (jid) => this.groupCache.get(jid)
+      cachedGroupMetadata: async (jid) => await this.groupCache.get(jid)
     })
 
     this.waSock.ev.on('creds.update', saveCreds)
@@ -62,9 +62,13 @@ export class Bot {
       if (fileStatus.isDirectory()) {
         this.loadCommands([...path, fileName])
       } else {
-        const command: Command = new (require(filePath)?.default)()
-        this.commands.set(command.name, command)
-        command.bot = this
+        const file = require(filePath)?.default
+        if (file !== undefined && file.prototype instanceof Command) {
+          console.log('Cargando comando:', file)
+          const command: Command = new (file)()
+          this.commands.set(command.name, command)
+          command.bot = this
+        }
       }
     }
   }

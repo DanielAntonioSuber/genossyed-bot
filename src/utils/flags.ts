@@ -42,3 +42,7 @@ export function getFlagValue(flags: string[], args: string[]): string | undefine
   const result = valueParts.join(' ').trim()
   return result === '' ? undefined : result
 }
+
+export function hasFlag(flags: string[], args: string[]) {
+  return flags.some(flag => args.includes(flag))
+}
