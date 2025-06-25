@@ -1,9 +1,7 @@
 import { proto } from 'baileys'
 import { Command } from '../../structures/Command'
-import { createTask } from '../../lib/notion'
-import { getFlagValue } from '../../utils/flags'
-import { isFullPageOrDatabase } from '@notionhq/client'
-import getTasksCommand from './getTasksCcommand'
+import getTasksCommand from './getTasksCommand'
+import createTaskCommand from './createTaskCommand'
 
 const helpText = `👋 ¡Hola! Este es el comando de Notion creado para interactuar fácilmente con el Notion de Daniel.
 
@@ -27,20 +25,14 @@ const helpText = `👋 ¡Hola! Este es el comando de Notion creado para interact
   Opciones disponibles:
    - -n, --number     ➜ Últimas n tareas
    - -i, --id         ➜ Tarea con el id
+   - -img, --image    ➜ Enviar imagen de las tareas (sin esta bandera envía texto)
 
   Ejemplo de uso:  
 .notion tasks get -n 10
+.notion tasks get -n 5 -img
 
 ✨✨✨ ¡Más funcionalidades serán añadidas pronto!
 `
-
-function parseFlagsCreate(args: string[]) {
-  return {
-    title: getFlagValue(['--title', '-t'], args),
-    category: getFlagValue(['--category', '-c'], args),
-    priority: getFlagValue(['--priority', '-p'], args)
-  }
-}
 
 export default class Notion extends Command {
   name: string
@@ -57,8 +49,6 @@ export default class Notion extends Command {
       const command = args?.[0]
       const subCommand = args?.[1]
 
-      console.log(message)
-
       if (!command)
         return
 
@@ -68,12 +58,7 @@ export default class Notion extends Command {
       if (command === 'tasks') {
         switch (subCommand) {
           case 'create':
-            const { category, priority, title } = parseFlagsCreate(args)
-            const response = await createTask({ category, priority, title })
-
-            if (isFullPageOrDatabase(response)) {
-              await this.bot.replyText(message, `Tarea con ID: ${(response.properties['ID'] as any)?.['unique_id']?.number} creada.`, 10)
-            }
+            await createTaskCommand(this.bot, message, args)
             break
           case 'get':
             await getTasksCommand(this.bot, message, args)
